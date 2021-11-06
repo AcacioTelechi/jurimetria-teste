@@ -2,20 +2,41 @@ from selenium import webdriver
 
 class tjpr_scraper():
 
-    def __init__(self):
-        self.driver = self._inicializar_drivier()
+    def __init__(self, hide=True):
+        self.driver = self._inicializar_drivier(hide)
     
-    def _inicializar_drivier(self):
+    def _inicializar_drivier(self, hide):
         options = webdriver.ChromeOptions()
-        options.add_argument('headless')
+        if hide:
+            options.add_argument('headless')
         driver = webdriver.Chrome(options=options)
         return driver
 
+    def _get_itens_tabela_resultado(self, url):
+        self.driver.get(url)
+        tab = scraper.driver.find_elements_by_class_name("resultTable")[1]
+        itens = tab.find_elements_by_tag_name("tr")[1:]
+        return itens, tab
+
+    def _get_dados_item(self, item):
+        dados_item = item.find_element_by_class_name("juris-tabela-dados")
+        link = dados_item.find_element_by_tag_name("a").get_attribute("href")
+        return dados_item.text, link
+
+    def _get_ementa_itam(self, item):
+        ementa_item = item.find_element_by_class_name("juris-tabela-ementa")
+        try:
+            ementa_item.find_element_by_tag_name("a").click()
+            ementa_item = ementa_item.text
+        except:
+            ementa_item = ementa_item.text
+        return ementa_item
+    
     def get_url_list(self, url):
         self.driver.get(url)
         dados = self.driver.find_elements_by_class_name("juris-tabela-propriedades")
         return [dado.find_element_by_tag_name("a").get_attribute("href") for dado in dados]
-    
+
     def get_data_from_processo(self, url):
         self.driver.get(url)
         dados = self.driver.find_element_by_class_name('juris-dados-completos')
