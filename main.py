@@ -1,4 +1,5 @@
 from selenium import webdriver
+import re
 import json
 
 class tjpr_scraper():
@@ -58,10 +59,7 @@ class tjpr_scraper():
             orgao = self._tratar_orgao(dados_split[6])
         except:
             orgao = ''
-        try:
-            data = self._tratar_data(dados_split[7])
-        except:
-            data = ''
+        data = self._tratar_data(dados_item)
         return {
             "processo": processo,
             "tipo": tipo,
@@ -89,8 +87,13 @@ class tjpr_scraper():
         o = ' '.join(o)
         return o
 
-    def _tratar_data(self, data):
-        return data.split(' ')[2]
+    def _tratar_data(self, texto):
+        pattern=r'\d{2}/\d{2}/\d{4}'
+        match = re.search(pattern, texto)
+        if match:
+            return match[0]
+        else:
+            return ''
 
     def get_dados(self, max_paginas = 10):
         total_processos = self.get_total_processos()
