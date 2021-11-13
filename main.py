@@ -23,11 +23,16 @@ class tjpr_scraper():
     def _get_dict_item(self, item):
         tab_dados = item.find_element_by_class_name("juris-tabela-dados")
         link = tab_dados.find_element_by_tag_name("a").get_attribute("href")
-        dados = self._get_dados_item(tab_dados)
+        dados = self._get_dados_item(tab_dados.text)
         ementa = self._get_ementa_item(item)
         return {
             "link": link,
-            "dados": dados,
+            "processo": dados['processo'],
+            "tipo": dados['tipo'],
+            "relator": dados['relator'],
+            "cargo": dados['cargo'],
+            "orgao": dados['orgao'],
+            "data": dados['data'],
             "ementa": ementa
         }
 
@@ -35,30 +40,18 @@ class tjpr_scraper():
         ementa_item = item.find_element_by_class_name("juris-tabela-ementa")
         try:
             ementa_item.find_element_by_tag_name("a").click()
+            # colocar para esperar um pouco pq tá pegando o "carregando"
             ementa_item = ementa_item.text
         except:
             ementa_item = ementa_item.text
         return ementa_item
     
     def _get_dados_item(self, dados_item):
-        dados_split = dados_item.text.split("\n")
-        try:
-            processo, tipo = self._tratar_tipo(dados_split[0])
-        except:
-            processo = ''
-            tipo = ''
-        try:
-            relator = self._tratar_relator(dados_split[2])
-        except:
-            relator = ''
-        try:
-            cargo = dados_split[3]
-        except:
-            cargo = ''
-        try:
-            orgao = self._tratar_orgao(dados_split[6])
-        except:
-            orgao = ''
+        processo = self._tratar_processo(dados_item)
+        tipo = self._tratar_tipo(dados_item)
+        relator = self._tratar_relator(dados_item)
+        cargo = self._tratar_cargo(dados_item)
+        orgao = self._tratar_orgao(dados_item)
         data = self._tratar_data(dados_item)
         return {
             "processo": processo,
@@ -69,23 +62,45 @@ class tjpr_scraper():
             "data": data
         }
     
-    def _tratar_tipo(self, processo):
-        split = processo.split(' ')
-        numero = split[1]
-        tipo = split[3].replace('(', '') + ' ' + split[4].replace(')', '')
-        return numero, tipo
+    def _tratar_tipo(self, texto):
+        pattern=r'\(.*\)'
+        match = re.search(pattern, texto)
+        if match:
+            return match[0].replace('(','').replace(')','')
+        else:
+            return ''
     
-    def _tratar_relator(self, relator):
-        split = relator.split(' ')
-        r = split[2:]
-        r = ' '.join(r)
-        return r
+    def _tratar_processo(self, texto):
+        pattern=r'\bProcesso:.*\b'
+        match = re.search(pattern, texto)
+        if match:
+            return match[0].replace('Processo:', '').strip()
+        else:
+            return ''
 
-    def _tratar_orgao(self, orgao):
-        split = orgao.split(' ')
-        o = split[2:]
-        o = ' '.join(o)
-        return o
+    def _tratar_relator(self, texto):
+        pattern=r'\bRelator:.*\b'
+        match = re.search(pattern, texto)
+        if match:
+            return match[0].replace('Relator:', '').strip()
+        else:
+            return ''
+
+    def _tratar_cargo(self, texto):
+        pattern=r'\bRelator:.*\n.*\b'
+        match = re.search(pattern, texto)
+        if match:
+            return match[0].split('\n')[-1]
+        else:
+            return ''
+
+    def _tratar_orgao(self, texto):
+        pattern=r'\bÓrgão Julgador: .*\b'
+        match = re.search(pattern, texto)
+        if match:
+            return match[0].replace('Órgão Julgador:', '').strip()
+        else:
+            return ''
 
     def _tratar_data(self, texto):
         pattern=r'\d{2}/\d{2}/\d{4}'
@@ -117,8 +132,10 @@ class tjpr_scraper():
 
 if __name__ == "__main__":
     url = 'https://portal.tjpr.jus.br/jurisprudencia/publico/pesquisa.do?actionType=pesquisar'
-    scraper = tjpr_scraper()
+    scraper = tjpr_scraper(hide=False)
     scraper.driver.get(url)
-    lista_ok, lista_pendentes = scraper.get_dados()
-    # with open('teste3.json', 'w', encoding='utf8') as f:
-    #     json.dump(lista_ok, f, ensure_ascii=False)
+    lista_ok, lista_pendentes = scraper.get_dados(max_paginas=5)
+    with open(r'./output/teste_ok.json', 'w', encoding='utf8') as f:
+        json.dump(lista_ok, f, ensure_ascii=False)
+    with open(r'./output/teste_pendentes.json', 'w', encoding='utf8') as f:
+        json.dump(lista_pendentes, f, ensure_ascii=False)   
