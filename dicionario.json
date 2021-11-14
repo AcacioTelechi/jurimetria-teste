@@ -1,6 +1,7 @@
 {
-  "topico": ["agravo de instrumento"],
+  "recurso": ["recurso", "procedimento recursal"],
   "resultado": {
-    "aprovado": ["reconhecido", "provido", "deferido"]
+    "aprovado": ["reconhecido", "provido", "deferido", "procedente"],
+    "reprovado": ["não reconhecido", "não provido", "não deferido", "recurso inominado", "improcedente", "extinto"]
   }
 }
